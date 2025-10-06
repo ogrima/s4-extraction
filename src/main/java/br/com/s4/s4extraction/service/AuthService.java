@@ -53,11 +53,11 @@ public class AuthService {
             headers.add("session", session);
             headers.add(HttpHeaders.COOKIE, buildCookieHeader(session));
             HttpEntity<Void> entity = new HttpEntity<>(headers);
-            ResponseEntity<String> resp = restTemplate.exchange(
+            ResponseEntity<Map> resp = restTemplate.exchange(
                     baseUrl + "/session_is_valid.fcgi",
                     HttpMethod.GET,
                     entity,
-                    String.class
+                    Map.class
             );
             return resp.getStatusCode().is2xxSuccessful();
         } catch (RestClientException ex) {
@@ -72,16 +72,17 @@ public class AuthService {
             Map<String, String> body = new HashMap<>();
             body.put("login", login);
             body.put("password", password);
-            HttpEntity<Map<String, String>> entity = new HttpEntity<>(body, headers);
-            ResponseEntity<String> resp = restTemplate.postForEntity(
+            String payload = objectMapper.writeValueAsString(body);
+            HttpEntity<String> entity = new HttpEntity<>(payload, headers);
+            ResponseEntity<Map> resp = restTemplate.postForEntity(
                     baseUrl + "/login.fcgi",
                     entity,
-                    String.class
+                    Map.class
             );
             if (!resp.getStatusCode().is2xxSuccessful() || resp.getBody() == null) {
                 throw new IllegalStateException("Login failed with status " + resp.getStatusCode());
             }
-            JsonNode node = objectMapper.readTree(resp.getBody());
+            JsonNode node = objectMapper.readTree(objectMapper.writeValueAsString(resp.getBody()));
             JsonNode sessionNode = node.get("session");
             if (sessionNode == null || !sessionNode.isTextual()) {
                 throw new IllegalStateException("Login response missing 'session' field");

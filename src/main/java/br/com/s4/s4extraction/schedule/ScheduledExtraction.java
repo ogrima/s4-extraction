@@ -1,5 +1,6 @@
 package br.com.s4.s4extraction.schedule;
 
+import br.com.s4.s4extraction.entity.AccessLogs;
 import br.com.s4.s4extraction.entity.CtlExtraction;
 import br.com.s4.s4extraction.service.CtlExtractionService;
 import br.com.s4.s4extraction.service.EventLoaderService;
@@ -26,9 +27,9 @@ public class ScheduledExtraction {
     }
 
     // Runs every 30 minutes at 0 and 30 of each hour
-    @Scheduled(cron = "0 0/30 * * * *")
+    @Scheduled(cron = "0 0/1 * * * *")
     public void run() {
-        List<String> spotList = Arrays.asList("1", "2", "3", "4", "5");
+        List<String> spotList = Arrays.asList("1");
         for (String spotStr : spotList) {
             try {
                 Long spotId = Long.valueOf(spotStr);
@@ -36,7 +37,14 @@ public class ScheduledExtraction {
                 if (rows == null || rows.isEmpty()) {
                     log.info("[ScheduledExtraction] No extraction row for spotId={}, calling loadAllEvents", spotId);
                     // default limit aligned with controller default
-                    eventLoaderService.loadAllEvents(1000);
+                    List<AccessLogs> result = eventLoaderService.loadAllEvents(1000);
+
+                    result.forEach(item -> {
+
+                    });
+
+
+
                 } else {
                     CtlExtraction row = rows.get(0);
                     Long lastPosition = row.getLastPosition();
@@ -48,7 +56,8 @@ public class ScheduledExtraction {
                         offset = Integer.MAX_VALUE;
                     }
                     log.info("[ScheduledExtraction] Found extraction row for spotId={}, lastPosition={}, calling loadEventsSince(offset={})", spotId, lastPosition, offset);
-                    eventLoaderService.loadEventsSince(offset, 1000);
+                    String result = eventLoaderService.loadEventsSince(offset, 1000);
+
                 }
             } catch (Exception e) {
                 log.error("[ScheduledExtraction] Error processing spot {}: {}", spotStr, e.getMessage(), e);

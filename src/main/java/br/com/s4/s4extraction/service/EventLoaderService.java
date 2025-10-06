@@ -1,10 +1,15 @@
 package br.com.s4.s4extraction.service;
 
+import br.com.s4.s4extraction.entity.AccessLogs;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -13,6 +18,9 @@ public class EventLoaderService {
     private final RestTemplate restTemplate;
     private final AuthService authService;
     private final String baseUrl;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     public EventLoaderService(RestTemplate restTemplate, AuthService authService,
                               @org.springframework.beans.factory.annotation.Value("${s4.remote.base-url:https://unjubilantly-resorptive-fanny.ngrok-free.dev}") String baseUrl) {
@@ -25,7 +33,7 @@ public class EventLoaderService {
      * Calls load_objects.fcgi with proper authentication headers using AuthService.
      * Returns raw JSON string from remote API.
      */
-    public String loadAllEvents(int limit) {
+    public List<AccessLogs> loadAllEvents(int limit) throws JsonProcessingException {
         String url = baseUrl + "/load_objects.fcgi";
         String session = authService.getValidSession();
 
@@ -39,18 +47,18 @@ public class EventLoaderService {
         body.put("ordendinger_by", "-time"); // keeping the provided key as-is
         body.put("limit", limit);
 
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
-        ResponseEntity<String> resp = restTemplate.postForEntity(url, entity, String.class);
+        HttpEntity<String> entity = new HttpEntity<>(objectMapper.writeValueAsString(body) , headers);
+        ResponseEntity<Map> resp = restTemplate.postForEntity(url, entity, Map.class);
         if (!resp.getStatusCode().is2xxSuccessful()) {
             throw new IllegalStateException("loadAllEvents failed with status " + resp.getStatusCode());
         }
-        return resp.getBody();
+        return parseEvents(objectMapper.writeValueAsString(resp.getBody()));
     }
 
     /**
      * Calls load_objects.fcgi including an offset parameter to load events since a given position.
      */
-    public String loadEventsSince(int offset, int limit) {
+    public String loadEventsSince(int offset, int limit) throws JsonProcessingException {
         String url = baseUrl + "/load_objects.fcgi";
         String session = authService.getValidSession();
 
@@ -65,12 +73,12 @@ public class EventLoaderService {
         body.put("ordendinger_by", "-time");
         body.put("limit", limit);
 
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
-        ResponseEntity<String> resp = restTemplate.postForEntity(url, entity, String.class);
+        HttpEntity<String> entity = new HttpEntity<>( objectMapper.writeValueAsString(body), headers);
+        ResponseEntity<Map> resp = restTemplate.postForEntity(url, entity, Map.class);
         if (!resp.getStatusCode().is2xxSuccessful()) {
             throw new IllegalStateException("loadEventsSince failed with status " + resp.getStatusCode());
         }
-        return resp.getBody();
+        return objectMapper.writeValueAsString(resp.getBody());
     }
 
     private static String trimTrailingSlash(String v) {
@@ -78,4 +86,9 @@ public class EventLoaderService {
         if (v.endsWith("/")) return v.substring(0, v.length() - 1);
         return v;
     }
+
+    public List<AccessLogs> parseEvents(String rawJson) throws JsonProcessingException {
+        return objectMapper.readValue(rawJson, objectMapper.getTypeFactory().constructCollectionType(List.class, AccessLogs.class));
+    }
+
 }
