@@ -27,20 +27,12 @@ public class ScheduledExtraction {
 
     private final CtlExtractionService ctlExtractionService;
     private final EventLoaderService eventLoaderService;
-    private final TagRepository tagRepository;
-    private final TrackingRepository trackingRepository;
-    private final CtlExtractionRepository ctlExtractionRepository;
+
 
     public ScheduledExtraction(CtlExtractionService ctlExtractionService,
-                               EventLoaderService eventLoaderService,
-                               TagRepository tagRepository,
-                               TrackingRepository trackingRepository,
-                               CtlExtractionRepository ctlExtractionRepository) {
+                               EventLoaderService eventLoaderService) {
         this.ctlExtractionService = ctlExtractionService;
         this.eventLoaderService = eventLoaderService;
-        this.tagRepository = tagRepository;
-        this.trackingRepository = trackingRepository;
-        this.ctlExtractionRepository = ctlExtractionRepository;
     }
 
     // Runs every 30 minutes at 0 and 30 of each hour
@@ -55,33 +47,7 @@ public class ScheduledExtraction {
                     log.info("[ScheduledExtraction] No extraction row for spotId={}, calling loadAllEvents", spotId);
                     // default limit aligned with controller default
                     List<AccessLogs> result = eventLoaderService.loadAllEvents(1000);
-
-                    result.forEach(item -> {
-                        Tag tag = tagRepository.findByHardwareId(String.valueOf(item.getCardValue()));
-                        if (tag != null) {
-                            Tracking tracking = Tracking.builder()
-                                    .spotId(spotId)
-                                    .tagId(tag.getTagId())
-                                    .movementTime(LocalDateTime.ofInstant(
-                                            Instant.ofEpochMilli(item.getTime()),
-                                            ZoneId.systemDefault()))
-                                    .externalId(item.getId())
-                                    .build();
-                            trackingRepository.save(tracking);
-                        }
-                    });
-
-                    Long maxId = result.stream()
-                            .mapToLong(AccessLogs::getId)
-                            .max()
-                            .orElse(0L);
-
-                    CtlExtraction ctlExtraction = CtlExtraction.builder()
-                            .spotId(spotId)
-                            .lastPosition(maxId)
-                            .build();
-                    ctlExtractionRepository.save(ctlExtraction);
-
+                    eventLoaderService.trackingFirstLoad(result, spotId);
 
                 } else {
                     CtlExtraction row = rows.get(0);
@@ -94,7 +60,8 @@ public class ScheduledExtraction {
                         offset = Integer.MAX_VALUE;
                     }
                     log.info("[ScheduledExtraction] Found extraction row for spotId={}, lastPosition={}, calling loadEventsSince(offset={})", spotId, lastPosition, offset);
-                    String result = eventLoaderService.loadEventsSince(offset, 1000);
+                    List<AccessLogs> result = eventLoaderService.loadEventsSince(offset, 1000);
+                    eventLoaderService.loadTrackingEvents(result, spotId, row);
 
                 }
             } catch (Exception e) {
@@ -102,4 +69,8 @@ public class ScheduledExtraction {
             }
         }
     }
+
+
+
+
 }
