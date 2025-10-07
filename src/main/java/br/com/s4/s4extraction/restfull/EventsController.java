@@ -27,7 +27,7 @@ public class EventsController {
     }
 
     @GetMapping(value = "/loadSince", produces = MediaType.APPLICATION_JSON_VALUE)
-    public String loadSince(@RequestParam(name = "offset") int offset,
+    public List<AccessLogs> loadSince(@RequestParam(name = "offset") int offset,
                             @RequestParam(name = "limit", defaultValue = "1000") int limit) throws JsonProcessingException {
         return eventLoaderService.loadEventsSince(offset, limit);
     }
