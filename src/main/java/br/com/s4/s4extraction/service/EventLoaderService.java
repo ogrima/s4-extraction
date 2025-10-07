@@ -20,6 +20,7 @@ import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
 public class EventLoaderService {
@@ -66,7 +67,7 @@ public class EventLoaderService {
         if (!resp.getStatusCode().is2xxSuccessful()) {
             throw new IllegalStateException("loadAllEvents failed with status " + resp.getStatusCode());
         }
-        return parseEvents(objectMapper.writeValueAsString(resp.getBody()));
+        return parseEvents(objectMapper.writeValueAsString(resp.getBody().get("access_logs")));
     }
 
     /**
@@ -106,6 +107,9 @@ public class EventLoaderService {
     }
 
     public void loadTrackingEvents(List<AccessLogs> result, Long spotId, CtlExtraction row) {
+
+        AtomicBoolean updateQueue = new AtomicBoolean(false);
+
         result.forEach(item -> {
             Tag tag = tagRepository.findByHardwareId(String.valueOf(item.getCardValue()));
             if (tag != null) {
@@ -118,19 +122,25 @@ public class EventLoaderService {
                         .externalId(item.getId())
                         .build();
                 trackingRepository.save(tracking);
+                updateQueue.set(true);
             }
         });
 
-        Long maxId = result.stream()
-                .mapToLong(AccessLogs::getId)
-                .max()
-                .orElse(0L);
+        if (updateQueue.get()) {
 
-        row.setLastPosition(maxId);
-        ctlExtractionRepository.save(row);
+            Long maxId = result.stream()
+                    .mapToLong(AccessLogs::getId)
+                    .max()
+                    .orElse(0L);
+
+            row.setLastPosition(maxId);
+            ctlExtractionRepository.save(row);
+        }
     }
 
     public void trackingFirstLoad(List<AccessLogs> result, Long spotId) {
+      AtomicBoolean updateQueue = new AtomicBoolean(false);
+
         result.forEach(item -> {
             Tag tag = tagRepository.findByHardwareId(String.valueOf(item.getCardValue()));
             if (tag != null) {
@@ -143,19 +153,25 @@ public class EventLoaderService {
                         .externalId(item.getId())
                         .build();
                 trackingRepository.save(tracking);
+                updateQueue.set(true);
             }
         });
 
-        Long maxId = result.stream()
-                .mapToLong(AccessLogs::getId)
-                .max()
-                .orElse(0L);
+        if (updateQueue.get()) {
 
-        CtlExtraction ctlExtraction = CtlExtraction.builder()
-                .spotId(spotId)
-                .lastPosition(maxId)
-                .build();
-        ctlExtractionRepository.save(ctlExtraction);
+            Long maxId = result.stream()
+                    .mapToLong(AccessLogs::getId)
+                    .max()
+                    .orElse(0L);
+
+            CtlExtraction ctlExtraction = CtlExtraction.builder()
+                    .spotId(spotId)
+                    .lastPosition(maxId)
+                    .build();
+
+            ctlExtractionRepository.save(ctlExtraction);
+      }
+
     }
 
 }
