@@ -93,7 +93,7 @@ public class EventLoaderService {
         if (!resp.getStatusCode().is2xxSuccessful()) {
             throw new IllegalStateException("loadEventsSince failed with status " + resp.getStatusCode());
         }
-        return parseEvents(objectMapper.writeValueAsString(resp.getBody()));
+        return parseEvents(objectMapper.writeValueAsString(resp.getBody().get("access_logs")));
     }
 
     private static String trimTrailingSlash(String v) {
@@ -111,7 +111,7 @@ public class EventLoaderService {
         AtomicBoolean updateQueue = new AtomicBoolean(false);
 
         result.forEach(item -> {
-            Tag tag = tagRepository.findByHardwareId(String.valueOf(item.getCardValue()));
+            Tag tag = tagRepository.findByHardwareId(String.valueOf(item.getUserId()));
             if (tag != null) {
                 Tracking tracking = Tracking.builder()
                         .spotId(spotId)
@@ -134,6 +134,7 @@ public class EventLoaderService {
                     .orElse(0L);
 
             row.setLastPosition(maxId);
+            row.setExtractionTime(LocalDateTime.now());
             ctlExtractionRepository.save(row);
         }
     }
@@ -142,7 +143,7 @@ public class EventLoaderService {
       AtomicBoolean updateQueue = new AtomicBoolean(false);
 
         result.forEach(item -> {
-            Tag tag = tagRepository.findByHardwareId(String.valueOf(item.getCardValue()));
+            Tag tag = tagRepository.findByHardwareId(String.valueOf(item.getUserId()));
             if (tag != null) {
                 Tracking tracking = Tracking.builder()
                         .spotId(spotId)

@@ -10,5 +10,5 @@ public interface TagRepository extends JpaRepository<Tag, Long> {
     Optional<Tag> findByTagName(String tagName);
     List<Tag> findByActive(Boolean active);
 
-    Tag findByHardwareId(String cardValue);
+    Tag findByHardwareId(String hardwareId);
 }

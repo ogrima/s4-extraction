@@ -56,6 +56,15 @@ public class TagService {
         return repository.findByActive(active);
     }
 
+    @Transactional(readOnly = true)
+    public Tag findByHardwareId(String hardwareId) {
+        Tag tag = repository.findByHardwareId(hardwareId);
+        if (tag == null) {
+            throw new IllegalArgumentException("Tag not found by hardwareId: " + hardwareId);
+        }
+        return tag;
+    }
+
     private void validate(Tag e) {
         Assert.notNull(e, "Tag must not be null");
         Assert.hasText(e.getTagName(), "tagName is required");
