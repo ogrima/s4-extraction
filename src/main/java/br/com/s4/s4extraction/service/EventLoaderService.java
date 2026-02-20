@@ -5,6 +5,7 @@ import br.com.s4.s4extraction.entity.CtlExtraction;
 import br.com.s4.s4extraction.entity.Tag;
 import br.com.s4.s4extraction.entity.Tracking;
 import br.com.s4.s4extraction.repository.CtlExtractionRepository;
+import br.com.s4.s4extraction.repository.SpotRepository;
 import br.com.s4.s4extraction.repository.TagRepository;
 import br.com.s4.s4extraction.repository.TrackingRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -27,7 +28,8 @@ public class EventLoaderService {
 
     private final RestTemplate restTemplate;
     private final AuthService authService;
-    private final String baseUrl;
+    @Autowired
+    private SpotRepository spotRepository;
     @Autowired
     private TagRepository tagRepository;
     @Autowired
@@ -37,25 +39,38 @@ public class EventLoaderService {
     @Autowired
     private ObjectMapper objectMapper;
 
-    public EventLoaderService(RestTemplate restTemplate, AuthService authService,
-                              @org.springframework.beans.factory.annotation.Value("${s4.remote.base-url:https://unjubilantly-resorptive-fanny.ngrok-free.dev}") String baseUrl) {
+    public EventLoaderService(RestTemplate restTemplate, AuthService authService) {
         this.restTemplate = restTemplate;
         this.authService = authService;
-        this.baseUrl = trimTrailingSlash(baseUrl);
+    }
+
+    private String getBaseUrl(Long spotId) {
+        return spotRepository.findById(spotId)
+                .map(spot -> {
+                    String label = spot.getSpotLabel();
+                    if (label == null || label.isBlank()) {
+                        throw new IllegalStateException("Spot label is empty for spotId: " + spotId);
+                    }
+                    if (label.startsWith("http")) {
+                        return trimTrailingSlash(label);
+                    }
+                    return "http://" + trimTrailingSlash(label);
+                })
+                .orElseThrow(() -> new IllegalArgumentException("Spot not found for spotId: " + spotId));
     }
 
     /**
      * Calls load_objects.fcgi with proper authentication headers using AuthService.
      * Returns raw JSON string from remote API.
      */
-    public List<AccessLogs> loadAllEvents(int limit) throws JsonProcessingException {
-        String url = baseUrl + "/load_objects.fcgi";
-        String session = authService.getValidSession();
+    public List<AccessLogs> loadAllEvents(Long spotId, int limit) throws JsonProcessingException {
+        String url = getBaseUrl(spotId) + "/load_objects.fcgi";
+        String session = authService.getValidSession(spotId);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.add("session", session);
-        headers.add(HttpHeaders.COOKIE, authService.buildCookieHeader(session));
+        headers.add(HttpHeaders.COOKIE, authService.buildCookieHeader(spotId, session));
 
         Map<String, Object> body = new HashMap<>();
         body.put("object", "access_logs");
@@ -73,14 +88,14 @@ public class EventLoaderService {
     /**
      * Calls load_objects.fcgi including an offset parameter to load events since a given position.
      */
-    public  List<AccessLogs> loadEventsSince(int offset, int limit) throws JsonProcessingException {
-        String url = baseUrl + "/load_objects.fcgi";
-        String session = authService.getValidSession();
+    public  List<AccessLogs> loadEventsSince(Long spotId, int offset, int limit) throws JsonProcessingException {
+        String url = getBaseUrl(spotId) + "/load_objects.fcgi";
+        String session = authService.getValidSession(spotId);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.add("session", session);
-        headers.add(HttpHeaders.COOKIE, authService.buildCookieHeader(session));
+        headers.add(HttpHeaders.COOKIE, authService.buildCookieHeader(spotId, session));
 
         Map<String, Object> body = new HashMap<>();
         body.put("object", "access_logs");

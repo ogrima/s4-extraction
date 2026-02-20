@@ -38,7 +38,7 @@ public class ScheduledExtraction {
     // Runs every 30 minutes at 0 and 30 of each hour
     @Scheduled(cron = "0 0/1 * * * *")
     public void run() {
-        List<String> spotList = Arrays.asList("1");
+        List<String> spotList = Arrays.asList("1","3");
         for (String spotStr : spotList) {
             try {
                 Long spotId = Long.valueOf(spotStr);
@@ -46,8 +46,8 @@ public class ScheduledExtraction {
                 if (rows == null || rows.isEmpty()) {
                     log.info("[ScheduledExtraction] No extraction row for spotId={}, calling loadAllEvents", spotId);
                     // default limit aligned with controller default
-//                    List<AccessLogs> result = eventLoaderService.loadAllEvents(1000);
-                    List<AccessLogs> result = eventLoaderService.loadEventsSince(0,1000);
+//                    List<AccessLogs> result = eventLoaderService.loadAllEvents(spotId, 1000);
+                    List<AccessLogs> result = eventLoaderService.loadEventsSince(spotId, 0, 1000);
                     eventLoaderService.trackingFirstLoad(result, spotId);
 
                 } else {
@@ -61,7 +61,7 @@ public class ScheduledExtraction {
                         offset = Integer.MAX_VALUE;
                     }
                     log.info("[ScheduledExtraction] Found extraction row for spotId={}, lastPosition={}, calling loadEventsSince(offset={})", spotId, lastPosition, offset);
-                    List<AccessLogs> result = eventLoaderService.loadEventsSince(offset, 1000);
+                    List<AccessLogs> result = eventLoaderService.loadEventsSince(spotId, offset, 1000);
                     eventLoaderService.loadTrackingEvents(result, spotId, row);
 
                 }

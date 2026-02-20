@@ -22,13 +22,15 @@ public class EventsController {
     }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<AccessLogs> loadAll(@RequestParam(name = "limit", defaultValue = "1000") int limit) throws JsonProcessingException {
-        return eventLoaderService.loadAllEvents(limit);
+    public List<AccessLogs> loadAll(@RequestParam(name = "spotId") Long spotId,
+                                    @RequestParam(name = "limit", defaultValue = "1000") int limit) throws JsonProcessingException {
+        return eventLoaderService.loadAllEvents(spotId, limit);
     }
 
     @GetMapping(value = "/loadSince", produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<AccessLogs> loadSince(@RequestParam(name = "offset") int offset,
-                            @RequestParam(name = "limit", defaultValue = "1000") int limit) throws JsonProcessingException {
-        return eventLoaderService.loadEventsSince(offset, limit);
+    public List<AccessLogs> loadSince(@RequestParam(name = "spotId") Long spotId,
+                                      @RequestParam(name = "offset") int offset,
+                                      @RequestParam(name = "limit", defaultValue = "1000") int limit) throws JsonProcessingException {
+        return eventLoaderService.loadEventsSince(spotId, offset, limit);
     }
 }
