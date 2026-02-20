@@ -108,9 +108,25 @@ public class EventLoaderService {
 
     public void loadTrackingEvents(List<AccessLogs> result, Long spotId, CtlExtraction row) {
 
+        List<AccessLogs> filteredResult = result.stream()
+                .filter(item -> item.getUserId() != null && item.getUserId() != 0)
+                .toList();
+
+        if (filteredResult.isEmpty()) {
+            Long maxId = result.stream()
+                    .mapToLong(AccessLogs::getId)
+                    .max()
+                    .orElse(0L);
+
+            row.setLastPosition(maxId);
+            row.setExtractionTime(LocalDateTime.now());
+            ctlExtractionRepository.save(row);
+            return;
+        }
+
         AtomicBoolean updateQueue = new AtomicBoolean(false);
 
-        result.forEach(item -> {
+        filteredResult.forEach(item -> {
             Tag tag = tagRepository.findByHardwareId(String.valueOf(item.getUserId()));
             if (tag != null) {
                 Tracking tracking = Tracking.builder()
@@ -128,7 +144,7 @@ public class EventLoaderService {
 
         if (updateQueue.get()) {
 
-            Long maxId = result.stream()
+            Long maxId = filteredResult.stream()
                     .mapToLong(AccessLogs::getId)
                     .max()
                     .orElse(0L);
@@ -140,9 +156,29 @@ public class EventLoaderService {
     }
 
     public void trackingFirstLoad(List<AccessLogs> result, Long spotId) {
-      AtomicBoolean updateQueue = new AtomicBoolean(false);
 
-        result.forEach(item -> {
+        List<AccessLogs> filteredResult = result.stream()
+                .filter(item -> item.getUserId() != null && item.getUserId() != 0)
+                .toList();
+
+        if (filteredResult.isEmpty()) {
+            Long maxId = result.stream()
+                    .mapToLong(AccessLogs::getId)
+                    .max()
+                    .orElse(0L);
+
+            CtlExtraction ctlExtraction = CtlExtraction.builder()
+                    .spotId(spotId)
+                    .lastPosition(maxId)
+                    .build();
+
+            ctlExtractionRepository.save(ctlExtraction);
+            return;
+        }
+
+        AtomicBoolean updateQueue = new AtomicBoolean(false);
+
+        filteredResult.forEach(item -> {
             Tag tag = tagRepository.findByHardwareId(String.valueOf(item.getUserId()));
             if (tag != null) {
                 Tracking tracking = Tracking.builder()
@@ -160,7 +196,7 @@ public class EventLoaderService {
 
         if (updateQueue.get()) {
 
-            Long maxId = result.stream()
+            Long maxId = filteredResult.stream()
                     .mapToLong(AccessLogs::getId)
                     .max()
                     .orElse(0L);

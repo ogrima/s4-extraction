@@ -11,4 +11,6 @@ public interface TrackingRepository extends JpaRepository<Tracking, Long> {
     List<Tracking> findByTagId(Long tagId);
     List<Tracking> findBySpotIdAndTagId(Long spotId, Long tagId);
     List<Tracking> findByMovementTimeAfter(LocalDateTime after);
+
+    List<Tracking> findByExternalIdGreaterThanEqualOrderByExternalIdAsc(Long externalId);
 }
