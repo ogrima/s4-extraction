@@ -110,6 +110,7 @@ public class EventLoaderService {
 
         List<AccessLogs> filteredResult = result.stream()
                 .filter(item -> item.getUserId() != null && item.getUserId() != 0)
+                .filter(item -> item.getTime() <= Instant.now().getEpochSecond())
                 .toList();
 
         if (filteredResult.isEmpty()) {
@@ -133,7 +134,7 @@ public class EventLoaderService {
                         .spotId(spotId)
                         .tagId(tag.getTagId())
                         .movementTime(LocalDateTime.ofInstant(
-                                Instant.ofEpochMilli(item.getTime()),
+                                Instant.ofEpochSecond(item.getTime()),
                                 ZoneId.systemDefault()))
                         .externalId(item.getId())
                         .build();
