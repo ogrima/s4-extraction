@@ -46,7 +46,8 @@ public class ScheduledExtraction {
                 if (rows == null || rows.isEmpty()) {
                     log.info("[ScheduledExtraction] No extraction row for spotId={}, calling loadAllEvents", spotId);
                     // default limit aligned with controller default
-                    List<AccessLogs> result = eventLoaderService.loadAllEvents(1000);
+//                    List<AccessLogs> result = eventLoaderService.loadAllEvents(1000);
+                    List<AccessLogs> result = eventLoaderService.loadEventsSince(0,1000);
                     eventLoaderService.trackingFirstLoad(result, spotId);
 
                 } else {

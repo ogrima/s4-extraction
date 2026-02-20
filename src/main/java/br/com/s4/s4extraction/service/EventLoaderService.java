@@ -119,9 +119,11 @@ public class EventLoaderService {
                     .max()
                     .orElse(0L);
 
-            row.setLastPosition(maxId);
-            row.setExtractionTime(LocalDateTime.now());
-            ctlExtractionRepository.save(row);
+            if (maxId > row.getLastPosition()) {
+                row.setLastPosition(maxId);
+                row.setExtractionTime(LocalDateTime.now());
+                ctlExtractionRepository.save(row);
+            }
             return;
         }
 
@@ -150,9 +152,11 @@ public class EventLoaderService {
                     .max()
                     .orElse(0L);
 
-            row.setLastPosition(maxId);
-            row.setExtractionTime(LocalDateTime.now());
-            ctlExtractionRepository.save(row);
+            if (maxId > row.getLastPosition()) {
+                row.setLastPosition(maxId);
+                row.setExtractionTime(LocalDateTime.now());
+                ctlExtractionRepository.save(row);
+            }
         }
     }
 
