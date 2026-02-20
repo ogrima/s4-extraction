@@ -5,12 +5,15 @@ import br.com.s4.s4extraction.entity.CtlExtraction;
 import br.com.s4.s4extraction.entity.Tag;
 import br.com.s4.s4extraction.entity.Tracking;
 import br.com.s4.s4extraction.repository.CtlExtractionRepository;
+import br.com.s4.s4extraction.repository.SpotRepository;
 import br.com.s4.s4extraction.repository.TagRepository;
 import br.com.s4.s4extraction.repository.TrackingRepository;
 import br.com.s4.s4extraction.service.CtlExtractionService;
 import br.com.s4.s4extraction.service.EventLoaderService;
+import lombok.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -28,7 +31,6 @@ public class ScheduledExtraction {
     private final CtlExtractionService ctlExtractionService;
     private final EventLoaderService eventLoaderService;
 
-
     public ScheduledExtraction(CtlExtractionService ctlExtractionService,
                                EventLoaderService eventLoaderService) {
         this.ctlExtractionService = ctlExtractionService;
@@ -38,7 +40,7 @@ public class ScheduledExtraction {
     // Runs every 30 minutes at 0 and 30 of each hour
     @Scheduled(cron = "0 0/1 * * * *")
     public void run() {
-        List<String> spotList = Arrays.asList("1","3");
+        List<String> spotList = eventLoaderService.getSpotList();
         for (String spotStr : spotList) {
             try {
                 Long spotId = Long.valueOf(spotStr);
@@ -70,8 +72,5 @@ public class ScheduledExtraction {
             }
         }
     }
-
-
-
 
 }

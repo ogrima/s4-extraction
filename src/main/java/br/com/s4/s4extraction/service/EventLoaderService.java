@@ -10,6 +10,7 @@ import br.com.s4.s4extraction.repository.TagRepository;
 import br.com.s4.s4extraction.repository.TrackingRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -229,6 +230,12 @@ public class EventLoaderService {
             ctlExtractionRepository.save(ctlExtraction);
       }
 
+    }
+
+    public @NonNull List<String> getSpotList() {
+        return spotRepository.findAll().stream()
+                .map(spot -> String.valueOf(spot.getSpotId()))
+                .collect(java.util.stream.Collectors.toList());
     }
 
 }
